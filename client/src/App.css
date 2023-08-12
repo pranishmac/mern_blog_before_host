@@ -178,3 +178,13 @@ div.post-page a.edit-btn{
 a svg{
     height:20px;
 }
+
+.comment-box{
+    margin: 0 5rem;
+}
+
+.add-comment-button{
+    width: 10rem;
+    margin-right: 5rem;
+    margin-left: auto;
+}

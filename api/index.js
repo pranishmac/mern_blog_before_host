@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const uploadMiddleware = multer({ dest: 'uploads/' });
 const fs = require('fs');
+const Comment = require('./models/Comment');
 
 const salt = bcrypt.genSaltSync(10);
 const secret = 'asdfe45we45w345wegw345werjktjwertkj';
@@ -115,6 +116,42 @@ app.post('/login', async (req,res) => {
   }
 });
 */
+
+// Create a new comment
+app.post('/comments', async (req, res) => {
+  const { postId, text } = req.body;
+  const { token } = req.cookies;
+  console.log(req);
+  console.log(postId, text);
+  jwt.verify(token, secret, {}, async (err, info) => {
+    if (err) {
+      return res.status(401).json('Unauthorized');
+    }
+
+    try {
+      const post = await Post.findById(postId);
+      if (!post) {
+        return res.status(404).json('Post not found');
+      }
+
+      let comment = await Comment.create({
+        text,
+        author: info.id,
+        post: postId,
+      });
+      comment=await comment.populate('author');
+      console.log(comment);
+      post.comments.push(comment);
+      await post.save();
+      res.status(201).json(comment);
+    } catch (error) {
+      res.status(400).json(error);
+    }
+  });
+});
+
+// Get comments for a specific post
+
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -224,9 +261,16 @@ app.get('/post', async (req,res) => {
 });
 
 app.get('/post/:id', async (req, res) => {
-  const {id} = req.params;
-  const postDoc = await Post.findById(id).populate('author', ['username']);
-  res.json(postDoc);
+  try {
+    const {id} = req.params;
+    const postDoc = await Post.findById(id).populate('author', ['username']);
+    const comments = await Comment.find({ post: req.params.id })
+      .populate('author', ['username'])
+      .sort({ createdAt: -1 });
+    res.json({postDoc, comments});
+  } catch (error) {
+    res.status(400).json(error);
+  }
 })
 
 app.listen(4000);
